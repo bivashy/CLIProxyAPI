@@ -20,3 +20,18 @@ func validateTrustedProxies(trustedProxies []string) error {
 	}
 	return nil
 }
+
+func validateManagementAllowedIPs(allowedIPs []string) error {
+	for _, entry := range allowedIPs {
+		if entry == "" || strings.TrimSpace(entry) != entry {
+			return fmt.Errorf("invalid management allowed-ips entry %q: expected an IP address or CIDR", entry)
+		}
+		if net.ParseIP(entry) != nil {
+			continue
+		}
+		if _, _, errParseCIDR := net.ParseCIDR(entry); errParseCIDR != nil {
+			return fmt.Errorf("invalid management allowed-ips entry %q: %w", entry, errParseCIDR)
+		}
+	}
+	return nil
+}

@@ -7,6 +7,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
@@ -395,10 +396,12 @@ func (h *Handler) AuthenticateManagementKey(clientIP string, localClient bool, p
 	cfg := h.cfg
 	var (
 		allowRemote bool
+		allowedIPs  []string
 		secretHash  string
 	)
 	if cfg != nil {
 		allowRemote = cfg.RemoteManagement.AllowRemote
+		allowedIPs = cfg.RemoteManagement.AllowedIPs
 		secretHash = cfg.RemoteManagement.SecretKey
 	}
 	h.mu.Unlock()
@@ -424,6 +427,26 @@ func (h *Handler) AuthenticateManagementKey(clientIP string, localClient bool, p
 
 	if !localClient && !allowRemote {
 		return false, http.StatusForbidden, "remote management disabled"
+	}
+
+	if !localClient && len(allowedIPs) > 0 {
+		permitted := false
+		if addr, errAddr := netip.ParseAddr(clientIP); errAddr == nil {
+			addr = addr.Unmap()
+			for _, entry := range allowedIPs {
+				if prefix, errPrefix := netip.ParsePrefix(entry); errPrefix == nil {
+					permitted = prefix.Contains(addr)
+				} else if allowedAddr, errAllowed := netip.ParseAddr(entry); errAllowed == nil {
+					permitted = allowedAddr.Unmap() == addr
+				}
+				if permitted {
+					break
+				}
+			}
+		}
+		if !permitted {
+			return false, http.StatusForbidden, "management access denied for this IP"
+		}
 	}
 
 	fail := func() {

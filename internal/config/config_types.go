@@ -532,7 +532,8 @@ type DiscoveryConfig struct {
 // RemoteManagement holds management API configuration under 'remote-management'.
 type RemoteManagement struct {
 	// AllowRemote toggles remote (non-localhost) access to management API.
-	AllowRemote bool `yaml:"allow-remote"`
+	AllowRemote bool     `yaml:"allow-remote"`
+	AllowedIPs  []string `yaml:"allowed-ips,omitempty" json:"allowed-ips,omitempty"`
 	// SecretKey is the management key (plaintext or bcrypt hashed). YAML key intentionally 'secret-key'.
 	SecretKey string `yaml:"secret-key"`
 	// DisableControlPanel skips serving and syncing the bundled management UI when true.
